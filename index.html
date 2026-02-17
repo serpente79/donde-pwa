@@ -21,7 +21,7 @@
     }
 
     input {
-      width: 70%;
+      width: 60%;
       padding: 10px;
     }
 
@@ -41,13 +41,21 @@
     small {
       color: gray;
     }
+
+    .mic {
+      background: #ff5252;
+      color: white;
+      border: none;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
 
   <h1>Donde</h1>
 
-  <input type="text" id="input" placeholder="Escribe algo..." />
+  <input type="text" id="input" placeholder="Escribe o dicta..." />
+  <button class="mic" onclick="iniciarDictado()">🎙</button>
   <button onclick="agregar()">Guardar</button>
 
   <div id="lista"></div>
@@ -112,9 +120,33 @@
       });
     }
 
+    // 🎤 VOZ
+    function iniciarDictado() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Tu navegador no soporta reconocimiento de voz");
+        return;
+      }
+
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = "es-ES";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const texto = event.results[0][0].transcript;
+        input.value = texto;
+      };
+
+      recognition.onerror = function(event) {
+        console.error("Error en reconocimiento:", event.error);
+      };
+    }
+
     render();
 
-    // Registrar Service Worker
+    // Service Worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js");
     }
