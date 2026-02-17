@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donde</title>
+
+  <link rel="manifest" href="manifest.json" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    input {
+      width: 70%;
+      padding: 10px;
+    }
+
+    button {
+      padding: 10px;
+      margin-top: 5px;
+      cursor: pointer;
+    }
+
+    .item {
+      background: white;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+
+    small {
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Donde</h1>
+
+  <input type="text" id="input" placeholder="Escribe algo..." />
+  <button onclick="agregar()">Guardar</button>
+
+  <div id="lista"></div>
+
+  <script>
+    let registros = JSON.parse(localStorage.getItem("registros")) || [];
+    const lista = document.getElementById("lista");
+    const input = document.getElementById("input");
+
+    function guardarEnStorage() {
+      localStorage.setItem("registros", JSON.stringify(registros));
+    }
+
+    function agregar() {
+      if (input.value.trim() === "") return;
+
+      const nuevo = {
+        id: Date.now(),
+        texto: input.value.trim(),
+        fecha: new Date().toLocaleString("es-ES")
+      };
+
+      registros.push(nuevo);
+      guardarEnStorage();
+      input.value = "";
+      render();
+    }
+
+    function borrar(id) {
+      registros = registros.filter(item => item.id !== id);
+      guardarEnStorage();
+      render();
+    }
+
+    function editar(id) {
+      const item = registros.find(r => r.id === id);
+      const nuevoTexto = prompt("Editar registro:", item.texto);
+
+      if (nuevoTexto !== null && nuevoTexto.trim() !== "") {
+        item.texto = nuevoTexto.trim();
+        guardarEnStorage();
+        render();
+      }
+    }
+
+    function render() {
+      lista.innerHTML = "";
+
+      registros.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "item";
+
+        div.innerHTML = `
+          <p>${item.texto}</p>
+          <small>${item.fecha}</small>
+          <br>
+          <button onclick="editar(${item.id})">Editar</button>
+          <button onclick="borrar(${item.id})">Borrar</button>
+        `;
+
+        lista.appendChild(div);
+      });
+    }
+
+    render();
+
+    // Registrar Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js");
+    }
+  </script>
+
+</body>
+</html>
