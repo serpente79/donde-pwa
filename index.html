@@ -1,198 +1,245 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Donde</title>
-  <link rel="manifest" href="manifest.json" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Donde</title>
+<link rel="manifest" href="manifest.json" />
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-      background: #f5f5f5;
-    }
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+  background: #f5f5f5;
+}
 
-    h1 {
-      text-align: center;
-    }
+h1 { text-align: center; }
 
-    input {
-      width: 65%;
-      padding: 10px;
-    }
+.campo {
+  margin-top: 10px;
+}
 
-    button {
-      padding: 10px;
-      margin-top: 5px;
-      cursor: pointer;
-    }
+.campo input {
+  width: 100%;
+  padding: 10px;
+}
 
-    .item {
-      background: white;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 8px;
-    }
+.boton-mic {
+  margin-top: 5px;
+  padding: 8px;
+  width: 100%;
+  background: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+}
 
-    small {
-      color: gray;
-    }
+button {
+  padding: 10px;
+  cursor: pointer;
+  margin-top: 5px;
+}
 
-    .acciones {
-      margin-top: 20px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-  </style>
+.item {
+  background: white;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+small { color: gray; }
+
+.topbar {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+</style>
 </head>
 <body>
 
-  <h1>Donde</h1>
+<h1>Donde</h1>
 
-  <input type="text" id="input" placeholder="Escribe o dicta..." />
-  <button onclick="iniciarDictado()">🎙</button>
-  <button onclick="agregar()">Guardar</button>
+<div class="campo">
+  <input id="nombre" placeholder="Nombre de la cosa..." />
+  <button class="boton-mic" onclick="iniciarDictado('nombre')">🎙 cosa</button>
+</div>
 
-  <div class="acciones">
-    <button onclick="exportar()">📤 Exportar</button>
-    <button onclick="document.getElementById('importFile').click()">📥 Importar</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importar(event)">
-  </div>
+<div class="campo">
+  <input id="ubicacion" placeholder="Dónde está guardado..." />
+  <button class="boton-mic" onclick="iniciarDictado('ubicacion')">🎙 donde</button>
+</div>
 
-  <div id="lista"></div>
+<button onclick="agregar()">Guardar</button>
 
-  <script>
-    let registros = JSON.parse(localStorage.getItem("registros")) || [];
-    const lista = document.getElementById("lista");
-    const input = document.getElementById("input");
+<div class="topbar">
+  <input id="buscar" placeholder="Buscar..." oninput="render()" />
+  <select id="orden" onchange="render()">
+    <option value="nuevo">Más reciente</option>
+    <option value="viejo">Más antiguo</option>
+    <option value="nombre">Ordenar por nombre</option>
+  </select>
+  <button onclick="exportar()">📤 Exportar</button>
+  <button onclick="document.getElementById('importFile').click()">📥 Importar</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importar(event)">
+</div>
 
-    function guardarEnStorage() {
-      localStorage.setItem("registros", JSON.stringify(registros));
+<div id="lista"></div>
+
+<script>
+let registros = JSON.parse(localStorage.getItem("registros")) || [];
+const lista = document.getElementById("lista");
+const nombre = document.getElementById("nombre");
+const ubicacion = document.getElementById("ubicacion");
+const buscarInput = document.getElementById("buscar");
+const ordenSelect = document.getElementById("orden");
+
+function guardar() {
+  localStorage.setItem("registros", JSON.stringify(registros));
+}
+
+function agregar() {
+  if (nombre.value.trim() === "" || ubicacion.value.trim() === "") return;
+
+  const nuevo = {
+    id: Date.now(),
+    nombre: nombre.value.trim(),
+    ubicacion: ubicacion.value.trim(),
+    fecha: new Date().toISOString()
+  };
+
+  registros.push(nuevo);
+  guardar();
+  nombre.value = "";
+  ubicacion.value = "";
+  nombre.focus();
+  render();
+}
+
+function borrar(id) {
+  registros = registros.filter(r => r.id !== id);
+  guardar();
+  render();
+}
+
+function editar(id) {
+  const item = registros.find(r => r.id === id);
+  const nuevoNombre = prompt("Editar nombre:", item.nombre);
+  const nuevaUbicacion = prompt("Editar ubicación:", item.ubicacion);
+
+  if (nuevoNombre && nuevaUbicacion) {
+    item.nombre = nuevoNombre.trim();
+    item.ubicacion = nuevaUbicacion.trim();
+    guardar();
+    render();
+  }
+}
+
+function render() {
+  lista.innerHTML = "";
+
+  let filtrados = registros.filter(r =>
+    r.nombre.toLowerCase().includes(buscarInput.value.toLowerCase()) ||
+    r.ubicacion.toLowerCase().includes(buscarInput.value.toLowerCase())
+  );
+
+  filtrados.sort((a, b) => {
+    if (ordenSelect.value === "nuevo") {
+      return new Date(b.fecha) - new Date(a.fecha);
+    } else if (ordenSelect.value === "viejo") {
+      return new Date(a.fecha) - new Date(b.fecha);
+    } else {
+      return a.nombre.localeCompare(b.nombre);
     }
+  });
 
-    function agregar() {
-      if (input.value.trim() === "") return;
+  filtrados.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <strong>${item.nombre}</strong><br>
+      📍 ${item.ubicacion}<br>
+      <small>${new Date(item.fecha).toLocaleString()}</small><br>
+      <button onclick="editar(${item.id})">Editar</button>
+      <button onclick="borrar(${item.id})">Borrar</button>
+    `;
+    lista.appendChild(div);
+  });
+}
 
-      const nuevo = {
-        id: Date.now(),
-        texto: input.value.trim(),
-        fecha: new Date().toLocaleString("es-ES")
-      };
+// 🎙 Dictado para cualquier campo
+function iniciarDictado(campo) {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("No soportado");
+    return;
+  }
 
-      registros.push(nuevo);
-      guardarEnStorage();
-      input.value = "";
-      render();
-    }
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "es-ES";
+  recognition.start();
 
-    function borrar(id) {
-      registros = registros.filter(item => item.id !== id);
-      guardarEnStorage();
-      render();
-    }
+  recognition.onresult = function(event) {
+    const texto = event.results[0][0].transcript;
+    document.getElementById(campo).value = texto;
+  };
+}
 
-    function editar(id) {
-      const item = registros.find(r => r.id === id);
-      const nuevoTexto = prompt("Editar registro:", item.texto);
+// Enter para navegación y guardado
+nombre.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    ubicacion.focus();
+  }
+});
 
-      if (nuevoTexto !== null && nuevoTexto.trim() !== "") {
-        item.texto = nuevoTexto.trim();
-        guardarEnStorage();
+ubicacion.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    agregar();
+  }
+});
+
+// Exportar
+function exportar() {
+  const blob = new Blob([JSON.stringify(registros, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "donde-backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Importar
+function importar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (Array.isArray(data)) {
+        registros = data;
+        guardar();
         render();
       }
+    } catch {
+      alert("Archivo inválido");
     }
+  };
+  reader.readAsText(file);
+}
 
-    function render() {
-      lista.innerHTML = "";
+render();
 
-      registros.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "item";
-
-        div.innerHTML = `
-          <p>${item.texto}</p>
-          <small>${item.fecha}</small>
-          <br>
-          <button onclick="editar(${item.id})">Editar</button>
-          <button onclick="borrar(${item.id})">Borrar</button>
-        `;
-
-        lista.appendChild(div);
-      });
-    }
-
-    // 🎤 Dictado por voz
-    function iniciarDictado() {
-      if (!('webkitSpeechRecognition' in window)) {
-        alert("Tu navegador no soporta reconocimiento de voz");
-        return;
-      }
-
-      const recognition = new webkitSpeechRecognition();
-      recognition.lang = "es-ES";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.start();
-
-      recognition.onresult = function(event) {
-        const texto = event.results[0][0].transcript;
-        input.value = texto;
-      };
-
-      recognition.onerror = function(event) {
-        console.error("Error en reconocimiento:", event.error);
-      };
-    }
-
-    // 📤 EXPORTAR
-    function exportar() {
-      const dataStr = JSON.stringify(registros, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "donde-backup.json";
-      a.click();
-
-      URL.revokeObjectURL(url);
-    }
-
-    // 📥 IMPORTAR
-    function importar(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const datos = JSON.parse(e.target.result);
-          if (Array.isArray(datos)) {
-            registros = datos;
-            guardarEnStorage();
-            render();
-            alert("Backup restaurado correctamente");
-          } else {
-            alert("Archivo inválido");
-          }
-        } catch {
-          alert("Error al leer el archivo");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    render();
-
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js");
-    }
-  </script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
 
 </body>
 </html>
